@@ -8,6 +8,7 @@ Adds a **WooCommerce Product** enrollment mode to LearnDash courses. Link a cour
 - Product selector to choose which WooCommerce product grants enrollment
 - Course infobar displays the linked product’s WooCommerce price HTML
 - Enroll button uses the standard LearnDash “Take this Course” label and links to checkout with `?add-to-cart={product_id}`
+- Works with **legacy LD30 infobar** and **modern / block course pages** (Closed-style Price + Enroll button)
 - Compatible with LearnDash Course Grid (price ribbon HTML allowed)
 - Graceful fallback: missing or invalid product shows the closed-course message instead of a broken enroll link
 
@@ -35,8 +36,10 @@ Activation is blocked (and an admin notice is shown) if LearnDash or WooCommerce
 ## How it works
 
 1. You set the course enrollment type to **WooCommerce Product** and pick a product.
-2. On the course page, visitors see the product price in the LearnDash infobar and a standard enroll button.
+2. On the course page, visitors see the product price and a standard enroll button (legacy infobar or modern enrollment sidebar).
 3. Clicking enroll opens checkout with the product added via `checkout/?add-to-cart={product_id}`.
+
+Modern course pages reuse LearnDash’s Closed enrollment UI path: the plugin maps `wc_product` to Closed for display only (stored type stays `wc_product`), injects the WooCommerce price, and points the enroll button at checkout.
 
 This plugin does **not** handle post-purchase LearnDash enrollment. Configure course/group access on the WooCommerce product using LearnDash’s normal WooCommerce integration (or your existing enrollment workflow).
 
@@ -71,6 +74,10 @@ Course setting key: `course_price_type_wc_product_id`
 
 ## Changelog
 
+### 1.0.3
+
+- Modern / block course pages: show Price and “Enroll in this course” (Closed-style) linking to the WooCommerce checkout add-to-cart URL, instead of Log In only.
+
 ### 1.0.2
 
 - Declared compatibility with WooCommerce High-performance order storage (HPOS).
@@ -89,10 +96,11 @@ Course setting key: `course_price_type_wc_product_id`
 1. Activate LearnDash, WooCommerce, and this plugin. Confirm no dependency notice appears.
 2. Edit a course → Enrollment → select **WooCommerce Product** → choose a simple, purchasable product → Save.
 3. Confirm only the product selector appears (no manual Course Price field) when this mode is selected.
-4. View the course while logged out: infobar shows WooCommerce price HTML; button shows standard enroll text.
-5. Click enroll → checkout loads with the product in the cart (`?add-to-cart=` on the checkout URL).
-6. Course Grid / listing: price ribbon shows product price (HTML allowed).
-7. Clear the product or choose an invalid ID → course shows closed message; no broken enroll link.
+4. View the course while logged out (legacy theme): infobar shows WooCommerce price HTML; button shows standard enroll text.
+5. View the course while logged out (modern course pages / blocks): sidebar shows Price and “Enroll in this course” (not Log In only).
+6. Click enroll → checkout loads with the product in the cart (`?add-to-cart=` on the checkout URL).
+7. Course Grid / listing: price ribbon shows product price (HTML allowed).
+8. Clear the product or choose an invalid ID → course shows closed message; no broken enroll link.
 
 ## License
 

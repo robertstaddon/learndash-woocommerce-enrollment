@@ -43,6 +43,13 @@ class LDWC_Enrollment {
 		add_filter( 'learndash_no_price_price_label', array( $this, 'filter_price_label' ) );
 		add_filter( 'learndash_course_grid_ribbon_text_allow_html', '__return_true' );
 		add_filter( 'learndash_payment_button', array( $this, 'filter_payment_button' ), 10, 2 );
+
+		// Modern / block enrollment (LD30 Modern + learndash_payment_buttons).
+		add_filter( 'learndash_model_product_pricing_type', array( $this, 'filter_product_pricing_type' ), 10, 2 );
+		add_filter( 'learndash_model_product_display_price', array( $this, 'filter_display_price' ), 10, 3 );
+		add_filter( 'learndash_model_setting', array( $this, 'filter_model_setting' ), 10, 3 );
+		add_filter( 'learndash_payment_button_closed', array( $this, 'filter_payment_button_closed' ), 10, 2 );
+		add_filter( 'learndash_payment_button_markup', array( $this, 'filter_payment_button_markup' ), 10, 1 );
 	}
 
 	/**
@@ -283,19 +290,140 @@ class LDWC_Enrollment {
 	 * @return string
 	 */
 	public function filter_payment_button( $payment_button, $payment_params ) {
-		if ( ! isset( $payment_params['post'] ) || ! $payment_params['post'] instanceof WP_Post ) {
+		$course_id = $this->resolve_course_id_from_payment_params( $payment_params );
+
+		if ( $course_id <= 0 || ! $this->course_uses_wc_product( $course_id ) ) {
 			return $payment_button;
 		}
 
-		$course_id = $payment_params['post']->ID;
+		$button_label = isset( $payment_params['button_label'] ) && is_string( $payment_params['button_label'] )
+			? $payment_params['button_label']
+			: null;
+
+		$button_html = $this->get_enroll_button_html( $course_id, $button_label );
+
+		return '' !== $button_html ? $button_html : $payment_button;
+	}
+
+	/**
+	 * Treat WooCommerce Product enrollment like Closed for modern Product model UI.
+	 *
+	 * Modern enrollment templates and Learndash_Payment_Button only handle built-in
+	 * price types. Mapping wc_product → closed reuses Closed price + button paths
+	 * without changing the stored course_price_type (legacy infobar keeps working).
+	 *
+	 * @param string $pricing_type Product pricing type.
+	 * @param mixed  $product      LearnDash Product model.
+	 * @return string
+	 */
+	public function filter_product_pricing_type( $pricing_type, $product ) {
+		unset( $product );
+
+		if ( self::PRICE_TYPE !== $pricing_type ) {
+			return $pricing_type;
+		}
+
+		return defined( 'LEARNDASH_PRICE_TYPE_CLOSED' ) ? LEARNDASH_PRICE_TYPE_CLOSED : 'closed';
+	}
+
+	/**
+	 * Plain-text WooCommerce price for modern enrollment (esc_html'd in templates).
+	 *
+	 * @param string $display_price Formatted display price.
+	 * @param string $price         Raw price from settings.
+	 * @param mixed  $product       LearnDash Product model.
+	 * @return string
+	 */
+	public function filter_display_price( $display_price, $price, $product ) {
+		unset( $price );
+
+		$course_id = $this->resolve_course_id_from_model( $product );
+		if ( $course_id <= 0 || ! $this->course_uses_wc_product( $course_id ) ) {
+			return $display_price;
+		}
+
+		$plain = $this->get_price_display_plain( $course_id );
+
+		return '' !== $plain ? $plain : $display_price;
+	}
+
+	/**
+	 * Supply checkout URL as custom_button_url for Closed-style modern templates.
+	 *
+	 * @param mixed  $setting_value Setting value.
+	 * @param string $setting_key   Setting key.
+	 * @param mixed  $model         LearnDash model.
+	 * @return mixed
+	 */
+	public function filter_model_setting( $setting_value, $setting_key, $model ) {
+		if ( 'custom_button_url' !== $setting_key ) {
+			return $setting_value;
+		}
+
+		$course_id = $this->resolve_course_id_from_model( $model );
+		if ( $course_id <= 0 || ! $this->course_uses_wc_product( $course_id ) ) {
+			return $setting_value;
+		}
+
+		$wc_product = $this->get_product( $course_id );
+		if ( ! $wc_product ) {
+			return $setting_value;
+		}
+
+		return $this->get_checkout_enroll_url( $wc_product->get_id() );
+	}
+
+	/**
+	 * Closed payment button → WooCommerce checkout enroll link.
+	 *
+	 * Fires after wc_product is remapped to closed via filter_product_pricing_type.
+	 *
+	 * @param string               $button         Button HTML.
+	 * @param array<string, mixed> $payment_params Payment parameters.
+	 * @return string
+	 */
+	public function filter_payment_button_closed( $button, $payment_params ) {
+		$course_id = $this->resolve_course_id_from_payment_params( $payment_params );
+
+		if ( $course_id <= 0 || ! $this->course_uses_wc_product( $course_id ) ) {
+			return $button;
+		}
+
+		$button_label = isset( $payment_params['button_label'] ) && is_string( $payment_params['button_label'] )
+			? $payment_params['button_label']
+			: null;
+
+		$button_html = $this->get_enroll_button_html( $course_id, $button_label );
+
+		return '' !== $button_html ? $button_html : $button;
+	}
+
+	/**
+	 * Fallback when payment button markup is empty (e.g. older LearnDash paths).
+	 *
+	 * @param string $button Payment button HTML.
+	 * @return string
+	 */
+	public function filter_payment_button_markup( $button ) {
+		if ( is_string( $button ) && '' !== trim( $button ) ) {
+			return $button;
+		}
+
+		global $post;
+
+		if ( ! $post instanceof WP_Post || 'sfwd-courses' !== $post->post_type ) {
+			return $button;
+		}
+
+		$course_id = (int) $post->ID;
 
 		if ( ! $this->course_uses_wc_product( $course_id ) ) {
-			return $payment_button;
+			return $button;
 		}
 
 		$button_html = $this->get_enroll_button_html( $course_id );
 
-		return '' !== $button_html ? $button_html : $payment_button;
+		return '' !== $button_html ? $button_html : $button;
 	}
 
 	/**
@@ -304,9 +432,51 @@ class LDWC_Enrollment {
 	 * @param int $course_id Course post ID.
 	 */
 	private function course_uses_wc_product( int $course_id ): bool {
-		$course_pricing = learndash_get_course_price( $course_id );
+		if ( $course_id <= 0 ) {
+			return false;
+		}
 
-		return self::PRICE_TYPE === ( $course_pricing['type'] ?? '' );
+		if ( function_exists( 'learndash_get_setting' ) ) {
+			return self::PRICE_TYPE === (string) learndash_get_setting( $course_id, 'course_price_type' );
+		}
+
+		$meta = get_post_meta( $course_id, '_sfwd-courses', true );
+
+		return is_array( $meta ) && self::PRICE_TYPE === ( $meta['sfwd-courses_course_price_type'] ?? '' );
+	}
+
+	/**
+	 * Course ID from LearnDash payment button params.
+	 *
+	 * @param array<string, mixed> $payment_params Payment parameters.
+	 */
+	private function resolve_course_id_from_payment_params( $payment_params ): int {
+		if ( ! is_array( $payment_params ) ) {
+			return 0;
+		}
+
+		if ( isset( $payment_params['post'] ) && $payment_params['post'] instanceof WP_Post ) {
+			return (int) $payment_params['post']->ID;
+		}
+
+		if ( isset( $payment_params['product_id'] ) ) {
+			return absint( $payment_params['product_id'] );
+		}
+
+		return 0;
+	}
+
+	/**
+	 * Course ID from a LearnDash model object.
+	 *
+	 * @param mixed $model LearnDash model.
+	 */
+	private function resolve_course_id_from_model( $model ): int {
+		if ( is_object( $model ) && method_exists( $model, 'get_id' ) ) {
+			return absint( $model->get_id() );
+		}
+
+		return 0;
 	}
 
 	/**
@@ -406,22 +576,38 @@ class LDWC_Enrollment {
 	/**
 	 * Enrollment link HTML for the course.
 	 *
-	 * @param int $course_id Course post ID.
+	 * @param int         $course_id    Course post ID.
+	 * @param string|null $button_label Optional label (e.g. Modern "Enroll in this Course").
 	 */
-	private function get_enroll_button_html( int $course_id ): string {
+	private function get_enroll_button_html( int $course_id, ?string $button_label = null ): string {
 		$product = $this->get_product( $course_id );
 
 		if ( ! $product ) {
 			return '';
 		}
 
-		$button_text = $this->get_enroll_button_label();
-		$button_url  = $this->get_checkout_enroll_url( $product->get_id() );
+		// Labels from Learndash_Payment_Button / Modern filters may already be escaped.
+		if ( null === $button_label || '' === $button_label ) {
+			$label_html = esc_html( $this->get_enroll_button_label() );
+		} else {
+			$label_html = $button_label;
+		}
+
+		$button_url = $this->get_checkout_enroll_url( $product->get_id() );
+		$classes    = 'ld-button btn-join';
+		$button_id  = 'btn-join';
+
+		if ( class_exists( 'Learndash_Payment_Button' ) ) {
+			$classes   = Learndash_Payment_Button::map_button_class_name( 'learndash-button-closed ld-button' );
+			$button_id = Learndash_Payment_Button::map_button_id();
+		}
 
 		return sprintf(
-			'<a class="ld-button btn-join" href="%1$s" id="btn-join">%2$s</a>',
+			'<a class="%1$s" href="%2$s" id="%3$s">%4$s</a>',
+			esc_attr( $classes ),
 			esc_url( $button_url ),
-			esc_html( $button_text )
+			esc_attr( $button_id ),
+			$label_html // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above or by LearnDash.
 		);
 	}
 
@@ -461,6 +647,21 @@ class LDWC_Enrollment {
 	}
 
 	/**
+	 * Plain-text price for modern templates that escape HTML.
+	 *
+	 * @param int $course_id Course post ID.
+	 */
+	private function get_price_display_plain( int $course_id ): string {
+		$price_html = $this->get_price_display( $course_id );
+
+		if ( '' === $price_html ) {
+			return '';
+		}
+
+		return html_entity_decode( wp_strip_all_tags( $price_html ), ENT_QUOTES, 'UTF-8' );
+	}
+
+	/**
 	 * Product options for the admin select field.
 	 *
 	 * @return array<int, string> Product ID => title.
@@ -468,11 +669,11 @@ class LDWC_Enrollment {
 	private function select_a_product(): array {
 		$posts = get_posts(
 			array(
-				'post_type'      => 'product',
-				'post_status'    => 'any',
-				'numberposts'    => -1,
-				'orderby'        => 'title',
-				'order'          => 'ASC',
+				'post_type'        => 'product',
+				'post_status'      => 'any',
+				'numberposts'      => -1,
+				'orderby'          => 'title',
+				'order'            => 'ASC',
 				'suppress_filters' => false,
 			)
 		);
