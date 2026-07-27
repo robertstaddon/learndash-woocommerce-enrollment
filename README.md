@@ -71,6 +71,10 @@ Course setting key: `course_price_type_wc_product_id`
 
 ## Changelog
 
+### 1.0.2
+
+- Declared compatibility with WooCommerce High-performance order storage (HPOS).
+
 ### 1.0.1
 
 - Added Update URI for custom update server.
