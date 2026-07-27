@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 6.7
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -40,6 +40,9 @@ Yes. This plugin uses price type `wc_product`; Credit/Audit uses `wcca`. Both ca
 No. Price appears in the course infobar (and Course Grid ribbon). The button uses the standard LearnDash "Take this Course" label.
 
 == Changelog ==
+
+= 1.0.1 =
+* Added Update URI for custom update server.
 
 = 1.0.0 =
 * Initial release: WooCommerce Product enrollment mode with product selector and checkout add-to-cart link.

@@ -3,13 +3,14 @@
  * Plugin Name:       LearnDash WooCommerce Product Enrollment
  * Plugin URI:        https://github.com/robertstaddon/learndash-woocommerce-enrollment
  * Description:       Adds a WooCommerce Product enrollment mode to LearnDash courses with a product selector and checkout enrollment link.
- * Version:           1.0.0
+ * Version:           1.0.1
  * Requires at least: 6.5
  * Requires PHP:      7.4
  * Requires Plugins:  woocommerce
  * Author:            Robert Staddon
  * Text Domain:       learndash-woocommerce-enrollment
  * Domain Path:       /languages
+ * Update URI:        https://manage.abundantdesigns.com/wp-json/update-server/learndash-woocommerce-enrollment/
  * WC requires at least: 7.0
  * WC tested up to:   9.6
  *
@@ -22,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'LDWC_ENROLLMENT_VERSION', '1.0.0' );
+define( 'LDWC_ENROLLMENT_VERSION', '1.0.1' );
 define( 'LDWC_ENROLLMENT_FILE', __FILE__ );
 define( 'LDWC_ENROLLMENT_PATH', plugin_dir_path( __FILE__ ) );
 
