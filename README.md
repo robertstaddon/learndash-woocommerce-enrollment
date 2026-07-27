@@ -9,7 +9,6 @@ Adds a **WooCommerce Product** enrollment mode to LearnDash courses. Link a cour
 - Course infobar displays the linked product’s WooCommerce price HTML
 - Enroll button uses the standard LearnDash “Take this Course” label and links to checkout with `?add-to-cart={product_id}`
 - Compatible with LearnDash Course Grid (price ribbon HTML allowed)
-- Works alongside LearnDash WooCommerce Credit/Audit (`wcca`) as a separate enrollment type
 - Graceful fallback: missing or invalid product shows the closed-course message instead of a broken enroll link
 
 ## Requirements
@@ -48,10 +47,6 @@ This plugin does **not** handle post-purchase LearnDash enrollment. Configure co
 - Price appears in the course infobar and Course Grid ribbon; it is not duplicated on the enroll button itself.
 
 ## FAQ
-
-### Can I use this with LearnDash WooCommerce Credit/Audit?
-
-Yes. This plugin uses price type `wc_product`. Credit/Audit uses `wcca`. Both can be active on the same site as separate enrollment types.
 
 ### Does the enroll button show the product price?
 
@@ -93,12 +88,14 @@ Course setting key: `course_price_type_wc_product_id`
 4. View the course while logged out: infobar shows WooCommerce price HTML; button shows standard enroll text.
 5. Click enroll → checkout loads with the product in the cart (`?add-to-cart=` on the checkout URL).
 6. Course Grid / listing: price ribbon shows product price (HTML allowed).
-7. With Credit/Audit plugin active: both **WooCommerce Product** and **WooCommerce Credit/Audit** appear as separate enrollment types.
-8. Clear the product or choose an invalid ID → course shows closed message; no broken enroll link.
+7. Clear the product or choose an invalid ID → course shows closed message; no broken enroll link.
 
 ## License
 
-GPLv2 or later. See [LICENSE](https://www.gnu.org/licenses/gpl-2.0.html).
+License: GPLv2 or later  
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
+
+This plugin is free software; you can redistribute it and/or modify it under the terms of the [GNU General Public License](https://www.gnu.org/licenses/gpl-2.0.html) as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
 
 ## Author
 
