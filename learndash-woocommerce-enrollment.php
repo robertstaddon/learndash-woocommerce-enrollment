@@ -7,7 +7,8 @@
  * Requires at least: 6.5
  * Requires PHP:      7.4
  * Requires Plugins:  woocommerce
- * Author:            Robert Staddon
+ * Author:            Abundant Designs
+ * Author URI:        https://www.abundantdesigns.com
  * Text Domain:       learndash-woocommerce-enrollment
  * Domain Path:       /languages
  * Update URI:        https://manage.abundantdesigns.com/wp-json/update-server/learndash-woocommerce-enrollment/
