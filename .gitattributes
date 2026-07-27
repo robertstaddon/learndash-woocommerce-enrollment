@@ -1,0 +1,6 @@
+# Normalize line endings for cross-platform consistency.
+* text=auto eol=lf
+
+*.php text eol=lf
+*.md  text eol=lf
+*.txt text eol=lf
